@@ -172,13 +172,17 @@ data "aws_iam_policy_document" "apply_permissions" {
       "route53:ListHostedZones",
       "route53:ListHostedZonesByName",
       "route53:ListResourceRecordSets",
+      "route53:ListTagsForResource",
       "route53:ChangeResourceRecordSets",
       "route53:GetChange",
       "acm:DescribeCertificate",
       "acm:GetCertificate",
       "acm:ListCertificates",
+      "acm:ListTagsForCertificate",
       "ecr:DescribeRepositories",
       "ecr:DescribeImages",
+      "ecr:GetRepositoryPolicy",
+      "ecr:ListTagsForResource",
     ]
     resources = ["*"]
   }

@@ -205,8 +205,12 @@ data "aws_iam_policy_document" "apply_permissions" {
   }
 
   statement {
-    sid     = "StateBucketReadWrite"
-    actions = ["s3:GetObject", "s3:PutObject", "s3:ListBucket"]
+    sid = "StateBucketReadWrite"
+    # DeleteObject is required too — not just for state, but to release the
+    # S3-native lock file (a PutObject-then-DeleteObject cycle) after every
+    # plan/apply. Without it, a successful plan still leaves an orphaned
+    # .tflock behind and blocks every subsequent run until manually cleared.
+    actions = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"]
     resources = [
       "arn:aws:s3:::raihan-terraform-backend-state",
       "arn:aws:s3:::raihan-terraform-backend-state/*",

@@ -125,3 +125,11 @@ resource "aws_vpc_endpoint" "interface_endpoints" {
   security_group_ids  = [aws_security_group.vpc-endpoint.id]
   subnet_ids          = [for subnet in aws_subnet.private : subnet.id] # Get the ids of each private subnet
 }
+
+# Every VPC gets an implicit "default" security group. Nothing should ever
+# use it — explicitly managing it with no rules closes off that traffic
+# rather than leaving it at AWS's permissive (all-traffic-within-the-SG)
+# default.
+resource "aws_default_security_group" "default" {
+  vpc_id = aws_vpc.ecs-project-vpc.id
+}

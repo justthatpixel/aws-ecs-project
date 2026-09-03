@@ -17,7 +17,8 @@ repos:
           - --init-args=-backend=false
       - id: terraform_tflint
         args:
+          - --args=--config=__GIT_WORKING_DIR__/.tflint.hcl
           - --args=--call-module-type=all
       - id: terraform_checkov
         args:
-          - --args=--config-file=.checkov.yaml
+          - --args=--config-file=__GIT_WORKING_DIR__/.checkov.yaml

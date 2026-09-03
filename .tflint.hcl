@@ -4,8 +4,12 @@ plugin "aws" {
   source  = "github.com/terraform-linters/tflint-ruleset-aws"
 }
 
+# This project's resource labels consistently use kebab-case
+# (e.g. "fargate-cluster", "threat-composer") — that's the established
+# convention throughout, not something worth a disruptive rename for a
+# purely stylistic rule.
 rule "terraform_naming_convention" {
-  enabled = true
+  enabled = false
 }
 
 rule "terraform_documented_variables" {

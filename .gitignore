@@ -1,6 +1,13 @@
 # Local .terraform directories
 **/.terraform/*
 
+# modules/ isn't an independently-initialized root config — any lock file
+# that shows up there is just a side effect of a linter/validator running
+# `terraform init` scoped to that directory, not a real dependency lock.
+# The real one lives at the repo root (and in bootstrap/*, which are their
+# own root configs) and IS committed.
+modules/*/.terraform.lock.hcl
+
 # Terraform state — remote S3 backend only, never local/committed
 *.tfstate
 *.tfstate.*

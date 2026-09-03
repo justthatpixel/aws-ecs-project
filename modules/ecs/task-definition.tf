@@ -14,18 +14,32 @@ resource "aws_ecs_task_definition" "threat-composer" {
     cpu_architecture        = "X86_64"
     operating_system_family = "LINUX"
   }
-  # container definition 
+  # container definition
   container_definitions = jsonencode([
     {
-      name      = "threat-composer"
-      image     = "${data.aws_ecr_repository.threat-composer.repository_url}:latest"
-      essential = true
+      name                   = "threat-composer"
+      image                  = "${data.aws_ecr_repository.threat-composer.repository_url}:latest"
+      essential              = true
+      readonlyRootFilesystem = true
       portMappings = [
         {
           containerPort = var.ecs_task_port
           protocol      = "tcp"
         }
       ]
+      # nginx-unprivileged's config (see app repo's nginx.conf) redirects
+      # every writable path (pid, proxy/client/fastcgi temp dirs) to /tmp —
+      # verified locally that `docker run --read-only --tmpfs /tmp` still
+      # serves traffic fine, so the container itself needs no writable
+      # root filesystem.
+      linuxParameters = {
+        tmpfs = [
+          {
+            containerPath = "/tmp"
+            size          = 64
+          }
+        ]
+      }
       logConfiguration = {
         logDriver = "awslogs"
         options = {

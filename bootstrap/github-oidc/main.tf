@@ -124,9 +124,13 @@ data "aws_iam_policy_document" "apply_assume_role" {
     }
 
     condition {
+      # The apply/destroy jobs target the "production" GitHub Environment
+      # (for future manual-approval protection rules), which changes the
+      # OIDC token's sub claim from the branch-ref format to this
+      # environment-scoped one.
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:ref:refs/heads/main"]
+      values   = ["repo:${var.github_repo}:environment:production"]
     }
   }
 }

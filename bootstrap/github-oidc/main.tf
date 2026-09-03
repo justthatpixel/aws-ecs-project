@@ -89,6 +89,7 @@ data "aws_iam_policy_document" "plan_permissions" {
       "acm:ListTagsForCertificate",
       "logs:DescribeLogGroups",
       "logs:ListTagsLogGroup",
+      "logs:ListTagsForResource",
       "ecr:DescribeRepositories",
       "ecr:DescribeImages",
       "ecr:GetRepositoryPolicy",

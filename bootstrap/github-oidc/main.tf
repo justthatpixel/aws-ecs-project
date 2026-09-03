@@ -103,6 +103,16 @@ data "aws_iam_policy_document" "plan_permissions" {
       "arn:aws:s3:::raihan-terraform-backend-state/*",
     ]
   }
+
+  # Even a read-only `terraform plan` acquires the S3-native state lock
+  # (use_lockfile = true in provider.tf), which writes/deletes a small
+  # `<key>.tflock` companion object. Scoped to just that lock object, not
+  # the real state file, so this role still can't ever write actual state.
+  statement {
+    sid       = "StateLockFile"
+    actions   = ["s3:PutObject", "s3:DeleteObject"]
+    resources = ["arn:aws:s3:::raihan-terraform-backend-state/*.tflock"]
+  }
 }
 
 resource "aws_iam_role_policy" "plan_permissions" {

@@ -9,6 +9,3 @@ variable "aws_region" {
   default     = "eu-west-2"
   description = "Default aws region for proj"
 }
-
-# no-op: forcing a push-triggered CI run to isolate whether workflow_dispatch
-# specifically is the variable behind today's repeated OIDC failures.

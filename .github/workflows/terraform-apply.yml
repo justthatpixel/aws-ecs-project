@@ -4,6 +4,7 @@ on:
   workflow_run:
     workflows: ["Terraform Plan"]
     types: [completed]
+  workflow_dispatch: {}
 
 permissions:
   id-token: write
@@ -21,23 +22,18 @@ concurrency:
 jobs:
   apply:
     name: Terraform Apply
-    # Only follow a plan that (a) actually succeeded and (b) came from a
-    # real push to main — never a PR preview or a manual test dispatch.
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    # Auto path: only follow a plan that (a) actually succeeded and (b) came
+    # from a real push to main — never a PR preview or a test dispatch of
+    # terraform-plan.yml. Manual path (workflow_dispatch on *this* workflow)
+    # always runs — it's a deliberate, explicit request to apply.
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-
-      - name: Download plan artifact from the triggering run
-        uses: actions/download-artifact@v4
-        with:
-          name: tfplan
-          run-id: ${{ github.event.workflow_run.id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -53,9 +49,24 @@ jobs:
       - name: Terraform init
         run: terraform init
 
-      # No fresh plan here — apply exactly what terraform-plan.yml already
-      # planned and uploaded. Terraform refuses to apply if state has moved
-      # on since (a stale-plan error), which is the correct, safe failure
-      # mode rather than silently re-planning under a more privileged role.
+      # Auto path: download the exact plan terraform-plan.yml already
+      # generated (under the read-only plan role) and apply that directly —
+      # no re-planning under the more privileged apply role. Terraform
+      # refuses to apply if state has moved on since (a stale-plan error),
+      # which is the correct, safe failure mode.
+      - name: Download plan artifact from the triggering run
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Manual path: no prior plan to consume — generate and apply one in
+      # this same run, self-contained.
+      - name: Terraform plan
+        if: github.event_name == 'workflow_dispatch'
+        run: terraform plan -no-color -out=tfplan
+
       - name: Terraform apply
         run: terraform apply -no-color -auto-approve tfplan

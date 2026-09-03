@@ -84,6 +84,7 @@ data "aws_iam_policy_document" "plan_permissions" {
       "route53:ListResourceRecordSets",
       "route53:ListTagsForResource",
       "acm:DescribeCertificate",
+      "acm:GetCertificate",
       "acm:ListCertificates",
       "acm:ListTagsForCertificate",
       "logs:DescribeLogGroups",
@@ -173,6 +174,7 @@ data "aws_iam_policy_document" "apply_permissions" {
       "route53:ChangeResourceRecordSets",
       "route53:GetChange",
       "acm:DescribeCertificate",
+      "acm:GetCertificate",
       "acm:ListCertificates",
       "ecr:DescribeRepositories",
     ]

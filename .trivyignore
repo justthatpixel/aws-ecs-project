@@ -1,0 +1,18 @@
+# Mutable ECR tags: repo currently uses a moving :latest tag for the
+# deploy pipeline. Same tradeoff as checkov's CKV_AWS_51.
+AVD-AWS-0031
+
+# S3 state bucket uses default AES256 (SSE-S3), not a customer-managed
+# KMS key. Same tradeoff as checkov's CKV_AWS_145.
+AVD-AWS-0132
+
+# The ALB is deliberately public — it's the entrypoint for a public web
+# app. Same as checkov's implicit acceptance of this design.
+AVD-AWS-0053
+
+# Unrestricted egress on the ALB/ECS-service/vpc-endpoint security
+# groups: standard "allow all outbound" pattern, needed for ECR pulls,
+# CloudWatch logs, and general AWS API access. Tightening every one of
+# these to exact destination CIDRs would need AWS service prefix lists
+# per resource — a substantial redesign out of scope here.
+AVD-AWS-0104

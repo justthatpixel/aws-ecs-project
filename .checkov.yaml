@@ -27,5 +27,17 @@ skip-check:
   # public cidr.
   - CKV_AWS_260
 
+  # GitHub Actions IAM roles (bootstrap/github-oidc): the IAM-specific
+  # statements are already scoped to role/threat-composer-* and the state
+  # bucket ARN — these checks flag the separate ec2/ecs/elbv2/logs
+  # statement's Resource "*", which is unavoidable here since this CI role
+  # has to provision an entire stack across services where most
+  # actions (e.g. ec2:CreateVpc) don't support resource-level ARN
+  # restriction at all. Standard tradeoff for an infra-provisioning role.
+  - CKV_AWS_356
+  - CKV_AWS_111
+  - CKV_AWS_107
+  - CKV_AWS_109
+
 compact: true
 quiet: true

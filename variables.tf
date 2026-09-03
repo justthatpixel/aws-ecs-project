@@ -1,7 +1,7 @@
 variable "ecs_task_port" {
   type        = number
-  default     = 80
-  description = "Port the container listens on (nginx in our image), and what the ALB target group / SG rules key off"
+  default     = 8080
+  description = "Port the container listens on — nginx-unprivileged in our image binds 8080, not 80, since it runs as a non-root user"
 }
 
 variable "aws_region" {

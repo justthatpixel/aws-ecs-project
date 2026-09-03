@@ -1,4 +1,4 @@
-name: Terraform
+name: Terraform Plan
 
 on:
   pull_request:
@@ -7,14 +7,14 @@ on:
       - "**.tf"
       - ".tflint.hcl"
       - ".checkov.yaml"
-      - ".github/workflows/terraform.yml"
+      - ".github/workflows/terraform-plan.yml"
   push:
     branches: [main]
     paths:
       - "**.tf"
       - ".tflint.hcl"
       - ".checkov.yaml"
-      - ".github/workflows/terraform.yml"
+      - ".github/workflows/terraform-plan.yml"
   workflow_dispatch: {}
 
 permissions:
@@ -24,6 +24,13 @@ permissions:
 env:
   AWS_REGION: eu-west-2
   TF_VERSION: "1.15.8"
+
+# Shared with terraform-apply.yml on purpose — a plan and an apply must
+# never run concurrently against the same state, or they race for the S3
+# lock (one wins, the other leaves an orphaned .tflock behind).
+concurrency:
+  group: terraform-state
+  cancel-in-progress: false
 
 jobs:
   validate:
@@ -79,9 +86,6 @@ jobs:
     name: Terraform Plan
     needs: validate
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -106,35 +110,12 @@ jobs:
       - name: Plan summary
         run: terraform show -no-color tfplan >> "$GITHUB_STEP_SUMMARY"
 
-  apply:
-    name: Terraform Apply
-    needs: plan
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    environment: production
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+      # terraform-apply.yml (triggered by workflow_run, push events only)
+      # downloads this exact plan and applies it directly — never
+      # re-planning under the more privileged apply role.
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
         with:
-          role-to-assume: arn:aws:iam::720644165598:role/github-actions-terraform-apply
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Terraform init
-        run: terraform init
-
-      - name: Terraform plan
-        run: terraform plan -no-color -out=tfplan
-
-      - name: Plan summary
-        run: terraform show -no-color tfplan >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Terraform apply
-        run: terraform apply -no-color -auto-approve tfplan
+          name: tfplan
+          path: tfplan
+          retention-days: 1

@@ -1,0 +1,61 @@
+name: Terraform Apply
+
+on:
+  workflow_run:
+    workflows: ["Terraform Plan"]
+    types: [completed]
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+env:
+  AWS_REGION: eu-west-2
+  TF_VERSION: "1.15.8"
+
+concurrency:
+  group: terraform-state
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    name: Terraform Apply
+    # Only follow a plan that (a) actually succeeded and (b) came from a
+    # real push to main — never a PR preview or a manual test dispatch.
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Download plan artifact from the triggering run
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::720644165598:role/github-actions-terraform-apply
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform init
+        run: terraform init
+
+      # No fresh plan here — apply exactly what terraform-plan.yml already
+      # planned and uploaded. Terraform refuses to apply if state has moved
+      # on since (a stale-plan error), which is the correct, safe failure
+      # mode rather than silently re-planning under a more privileged role.
+      - name: Terraform apply
+        run: terraform apply -no-color -auto-approve tfplan

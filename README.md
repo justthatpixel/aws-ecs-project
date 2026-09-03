@@ -28,12 +28,12 @@
 
 <!-- TODO: insert demo gif here -->
 
+
 This project is based on AWS's Threat Composer, an open-source tool designed to facilitate threat modelling and improve security assessments. It answers the question of "What could go wrong?" — helping teams identify potential security threats to a system and document them in a clear, structured format, rather than starting from a blank page. You can check out the tool here: https://awslabs.github.io/threat-composer/workspaces/default/dashboard
+<img width="1080" height="608" alt="image" src="https://github.com/user-attachments/assets/211a6dec-fb41-4b13-8671-0bc4d36d457f" />
 
 ### Architecture Diagram
-
-<img width="672" height="480" alt="Architecture Diagram" src="https://github.com/user-attachments/assets/c011bf4f-f670-48a0-bb17-d1dd3c303fbc" />
-
+<img width="2258" height="1614" alt="diagram_black_bg_1" src="https://github.com/user-attachments/assets/6272ce82-5930-4673-85ff-f24d0e659b8f" />
 ---
 
 ## Repository Structure

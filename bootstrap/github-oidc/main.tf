@@ -202,6 +202,7 @@ data "aws_iam_policy_document" "apply_permissions" {
       "iam:DetachRolePolicy",
       "iam:ListRolePolicies",
       "iam:ListAttachedRolePolicies",
+      "iam:ListInstanceProfilesForRole",
       "iam:PassRole",
     ]
     resources = [

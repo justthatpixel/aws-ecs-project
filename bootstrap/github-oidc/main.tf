@@ -16,6 +16,12 @@ variable "github_repo" {
   default = "justthatpixel/aws-ecs-project"
 }
 
+variable "app_github_repo" {
+  type        = string
+  default     = "justthatpixel/ecs-project"
+  description = "The app repo that builds and pushes the container image — separate from the infra repo, gets its own narrowly-scoped role"
+}
+
 # Reusing the OIDC provider that already exists in this account — AWS only
 # allows one per provider URL, and this one was created independently of
 # this project.
@@ -204,4 +210,73 @@ output "plan_role_arn" {
 
 output "apply_role_arn" {
   value = aws_iam_role.github_actions_apply.arn
+}
+
+# ---------------------------------------------------------------------------
+# ECR-push role — for the app repo's build/scan/push pipeline. Deliberately
+# separate from the infra roles above: this one only ever needs to push
+# images, never touch VPC/ALB/ECS/IAM resources, and is trusted for a
+# different repo entirely.
+# ---------------------------------------------------------------------------
+
+data "aws_iam_policy_document" "ecr_push_assume_role" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+
+    principals {
+      type        = "Federated"
+      identifiers = [data.aws_iam_openid_connect_provider.github.arn]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "token.actions.githubusercontent.com:sub"
+      values   = ["repo:${var.app_github_repo}:ref:refs/heads/main"]
+    }
+  }
+}
+
+resource "aws_iam_role" "github_actions_ecr_push" {
+  name               = "github-actions-ecr-push"
+  assume_role_policy = data.aws_iam_policy_document.ecr_push_assume_role.json
+}
+
+data "aws_iam_policy_document" "ecr_push_permissions" {
+  statement {
+    sid       = "EcrAuth"
+    actions   = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid = "EcrPush"
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+      "ecr:PutImage",
+      "ecr:InitiateLayerUpload",
+      "ecr:UploadLayerPart",
+      "ecr:CompleteLayerUpload",
+      "ecr:DescribeRepositories",
+      "ecr:DescribeImages",
+    ]
+    resources = ["arn:aws:ecr:eu-west-2:720644165598:repository/threat-composer"]
+  }
+}
+
+resource "aws_iam_role_policy" "ecr_push_permissions" {
+  name   = "ecr-push-threat-composer"
+  role   = aws_iam_role.github_actions_ecr_push.id
+  policy = data.aws_iam_policy_document.ecr_push_permissions.json
+}
+
+output "ecr_push_role_arn" {
+  value = aws_iam_role.github_actions_ecr_push.arn
 }

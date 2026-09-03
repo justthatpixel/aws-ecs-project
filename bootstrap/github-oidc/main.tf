@@ -90,6 +90,7 @@ data "aws_iam_policy_document" "plan_permissions" {
       "logs:DescribeLogGroups",
       "logs:ListTagsLogGroup",
       "ecr:DescribeRepositories",
+      "ecr:DescribeImages",
       "ecr:GetRepositoryPolicy",
       "ecr:ListTagsForResource",
     ]
@@ -177,6 +178,7 @@ data "aws_iam_policy_document" "apply_permissions" {
       "acm:GetCertificate",
       "acm:ListCertificates",
       "ecr:DescribeRepositories",
+      "ecr:DescribeImages",
     ]
     resources = ["*"]
   }

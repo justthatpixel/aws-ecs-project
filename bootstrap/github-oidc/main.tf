@@ -214,8 +214,9 @@ output "apply_role_arn" {
 
 # ---------------------------------------------------------------------------
 # ECR-push role — for the app repo's build/scan/push pipeline. Deliberately
-# separate from the infra roles above: this one only ever needs to push
-# images, never touch VPC/ALB/ECS/IAM resources, and is trusted for a
+# separate from the infra roles above: this one only ever pushes images and
+# force-redeploys the one ECS service it's scoped to (so a new image
+# actually gets picked up) — no VPC/ALB/IAM access, and it's trusted for a
 # different repo entirely.
 # ---------------------------------------------------------------------------
 
@@ -268,6 +269,12 @@ data "aws_iam_policy_document" "ecr_push_permissions" {
       "ecr:DescribeImages",
     ]
     resources = ["arn:aws:ecr:eu-west-2:720644165598:repository/threat-composer"]
+  }
+
+  statement {
+    sid       = "ForceEcsRedeploy"
+    actions   = ["ecs:UpdateService", "ecs:DescribeServices"]
+    resources = ["arn:aws:ecs:eu-west-2:720644165598:service/ecs-project/threat-composer"]
   }
 }
 

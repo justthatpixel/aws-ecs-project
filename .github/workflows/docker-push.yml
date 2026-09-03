@@ -1,0 +1,82 @@
+name: Docker Push
+
+on:
+  workflow_run:
+    workflows: ["Docker Build & Scan"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "ecs-project ref/sha to build+push (defaults to main)"
+        required: false
+        default: "main"
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  push:
+    name: Push to ECR
+    # Auto path: only follow a build+scan that actually succeeded (both
+    # repository_dispatch and manual runs of Docker Build & Scan are fair
+    # game here — unlike the Terraform pipeline there's no PR-preview
+    # concern, since this workflow never runs against ecs-project's PRs at
+    # all). Manual path (workflow_dispatch on *this* workflow) always runs.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      # Auto path: reuse the exact image docker-build-scan.yml already
+      # built and scanned, plus the SHA it resolved.
+      - name: Download image artifact from the triggering run
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: threat-composer-image
+          path: /tmp
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load image
+        if: github.event_name == 'workflow_run'
+        run: |
+          docker load -i /tmp/threat-composer.tar
+          echo "sha=$(cat /tmp/sha.txt)" >> "$GITHUB_ENV"
+
+      # Manual path: no prior build to reuse — check out ecs-project and
+      # build it fresh here.
+      - name: Checkout ecs-project
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@v4
+        with:
+          repository: justthatpixel/ecs-project
+          ref: ${{ inputs.ref }}
+          token: ${{ secrets.CROSS_REPO_PAT }}
+
+      - name: Resolve commit SHA and build
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_ENV"
+          docker build --platform linux/amd64 -t threat-composer:$sha .
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::720644165598:role/github-actions-ecr-push
+          aws-region: eu-west-2
+
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Tag and push to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: threat-composer
+        run: |
+          docker tag threat-composer:$sha $ECR_REGISTRY/$ECR_REPOSITORY:$sha
+          docker tag threat-composer:$sha $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$sha
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest

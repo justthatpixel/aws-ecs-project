@@ -1,0 +1,67 @@
+name: Docker Build & Scan
+
+# Builds from ecs-project's source, not this repo's — checked out via a
+# cross-repo PAT since the app code lives there. Auto-triggered by
+# ecs-project's tiny notify workflow on every push to its main; the
+# `ref` input lets you build an arbitrary ecs-project commit manually.
+on:
+  repository_dispatch:
+    types: [ecs-project-push]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "ecs-project ref/sha to build (defaults to main)"
+        required: false
+        default: "main"
+
+jobs:
+  build-scan:
+    name: Build + Trivy scan
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+    steps:
+      - name: Checkout ecs-project
+        uses: actions/checkout@v4
+        with:
+          repository: justthatpixel/ecs-project
+          ref: ${{ github.event.client_payload.sha || inputs.ref }}
+          token: ${{ secrets.CROSS_REPO_PAT }}
+
+      # Resolve to a real commit SHA regardless of whether we were handed
+      # one directly (repository_dispatch) or a branch name (manual
+      # dispatch's default "main") — everything downstream tags/reads by
+      # this, not by whatever ref string we started with.
+      - name: Resolve commit SHA
+        id: resolve
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        run: docker build --platform linux/amd64 -t threat-composer:${{ steps.resolve.outputs.sha }} .
+
+      - name: Run Trivy Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "threat-composer:${{ steps.resolve.outputs.sha }}"
+          format: "table"
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: "os,library"
+          severity: "CRITICAL,HIGH"
+
+      - name: Save image
+        run: |
+          docker save threat-composer:${{ steps.resolve.outputs.sha }} -o /tmp/threat-composer.tar
+          # docker-push.yml (triggered by workflow_run) has no way to see
+          # this repo's job outputs — carry the resolved SHA in the
+          # artifact itself so it knows what to tag/push.
+          echo "${{ steps.resolve.outputs.sha }}" > /tmp/sha.txt
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: threat-composer-image
+          path: |
+            /tmp/threat-composer.tar
+            /tmp/sha.txt
+          retention-days: 1

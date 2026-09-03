@@ -1,0 +1,21 @@
+{
+  "cluster": "arn:aws:ecs:eu-west-2:123456789012:cluster/ecs-project",
+  "serviceName": "threat-composer",
+  "taskDefinition": "arn:aws:ecs:eu-west-2:123456789012:task-definition/threat-composer-app:3",
+  "desiredCount": 2,
+  "launchType": "FARGATE",
+  "networkConfiguration": {
+    "awsvpcConfiguration": {
+      "subnets": ["very-real-subnet-id", "very-real-subnet-id-2"],
+      "securityGroups": ["very-real-security-group-id"],
+      "assignPublicIp": "DISABLED"
+    }
+  },
+  "loadBalancers": [
+    {
+      "targetGroupArn": "arn:aws:elasticloadbalancing:eu-west-2:123456789012:targetgroup/threat-composer-tg/df27e1d35e0bd309",
+      "containerName": "threat-composer",
+      "containerPort": 80
+    }
+  ]
+}

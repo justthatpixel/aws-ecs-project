@@ -1,0 +1,10 @@
+# HIGH-severity OS package CVEs in the nginxinc/nginx-unprivileged:alpine3.23
+# base image (curl, libcurl, openssl, expat) — fixes exist upstream but
+# haven't landed in this Alpine tag's current build yet. Not application
+# code. Blocking the first-ever deploy over base-image timing isn't worth
+# it; revisit by bumping the base image tag once patches land.
+CVE-2026-5773
+CVE-2026-6276
+CVE-2026-14456
+CVE-2026-66046
+CVE-2026-76641

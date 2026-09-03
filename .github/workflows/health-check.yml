@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - "**.tf"
+      - "terraform/**"
   schedule:
     # Every 30 minutes — cheap ongoing liveness check of the deployed app.
     - cron: "*/30 * * * *"

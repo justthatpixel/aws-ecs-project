@@ -1,4 +1,4 @@
-name: Terraform Plan
+name: Terraform
 
 on:
   pull_request:
@@ -7,7 +7,15 @@ on:
       - "**.tf"
       - ".tflint.hcl"
       - ".checkov.yaml"
-      - ".github/workflows/terraform-plan.yml"
+      - ".github/workflows/terraform.yml"
+  push:
+    branches: [main]
+    paths:
+      - "**.tf"
+      - ".tflint.hcl"
+      - ".checkov.yaml"
+      - ".github/workflows/terraform.yml"
+  workflow_dispatch: {}
 
 permissions:
   id-token: write
@@ -59,6 +67,14 @@ jobs:
           config_file: .checkov.yaml
           quiet: true
 
+      - name: Trivy IaC config scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          scan-ref: .
+          severity: CRITICAL,HIGH
+          exit-code: 1
+
   plan:
     name: Terraform Plan
     needs: validate
@@ -86,3 +102,36 @@ jobs:
 
       - name: Plan summary
         run: terraform show -no-color tfplan >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    name: Terraform Apply
+    needs: plan
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::720644165598:role/github-actions-terraform-apply
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: Terraform init
+        run: terraform init
+
+      - name: Terraform plan
+        run: terraform plan -no-color -out=tfplan
+
+      - name: Plan summary
+        run: terraform show -no-color tfplan >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Terraform apply
+        run: terraform apply -no-color -auto-approve tfplan

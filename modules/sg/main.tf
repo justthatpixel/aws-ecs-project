@@ -21,7 +21,7 @@ resource "aws_vpc_security_group_ingress_rule" "alb_https" {
 
 resource "aws_vpc_security_group_ingress_rule" "alb_http" {
   security_group_id = aws_security_group.alb.id
-  description       = "Allow inbound HTTP from the internet — redirected to HTTPS at the listener"
+  description       = "Allow inbound HTTP from the internet, redirected to HTTPS at the listener"
   cidr_ipv4         = "0.0.0.0/0"
   from_port         = 80
   to_port           = 80

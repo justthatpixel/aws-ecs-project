@@ -11,15 +11,17 @@ provider "aws" {
   region = "eu-west-2"
 }
 
-variable "github_repo" {
-  type    = string
-  default = "justthatpixel/aws-ecs-project"
-}
-
-variable "app_github_repo" {
-  type        = string
-  default     = "justthatpixel/ecs-project"
-  description = "The app repo that builds and pushes the container image — separate from the infra repo, gets its own narrowly-scoped role"
+# GitHub rolled out an "immutable" OIDC sub-claim format for repos created
+# after July 15, 2026: `repo:OWNER@OWNER-ID/REPO@REPO-ID:...` instead of the
+# old `repo:OWNER/REPO:...`. Both repos here postdate that cutoff, so their
+# tokens use the new format — trust conditions below must match it exactly
+# or every AssumeRoleWithWebIdentity call fails with a generic "Not
+# authorized" error that gives no hint the claim shape is the problem.
+# IDs come from `gh api repos/<owner>/<repo> --jq '.id, .owner.id'`.
+locals {
+  github_owner_id = "justthatpixel@64263647"
+  github_repo     = "${local.github_owner_id}/aws-ecs-project@1356034345"
+  app_github_repo = "${local.github_owner_id}/ecs-project@1325329604"
 }
 
 # Reusing the OIDC provider that already exists in this account — AWS only
@@ -53,7 +55,7 @@ data "aws_iam_policy_document" "plan_assume_role" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:*"]
+      values   = ["repo:${local.github_repo}:*"]
     }
   }
 }
@@ -136,7 +138,7 @@ data "aws_iam_policy_document" "apply_assume_role" {
       # environment-scoped one.
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_repo}:environment:production"]
+      values   = ["repo:${local.github_repo}:environment:production"]
     }
   }
 }
@@ -238,7 +240,7 @@ data "aws_iam_policy_document" "ecr_push_assume_role" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.app_github_repo}:ref:refs/heads/main"]
+      values   = ["repo:${local.app_github_repo}:ref:refs/heads/main"]
     }
   }
 }

@@ -1,0 +1,34 @@
+directory:
+  - .
+
+framework:
+  - terraform
+
+skip-check:
+  # ALB deletion protection intentionally off — this stack has a Terraform
+  # destroy pipeline that needs to be able to tear the ALB down cleanly.
+  - CKV_AWS_150
+
+  # ALB access logging needs a dedicated S3 bucket + ELB service account
+  # bucket policy. Deliberately out of scope for now — revisit later.
+  - CKV_AWS_91
+
+  # Default CloudWatch Logs / ECR encryption-at-rest already applies; a
+  # customer-managed KMS key is extra hardening, not required here.
+  - CKV_AWS_158
+  - CKV_AWS_136
+
+  # ECR repo currently uses a moving `:latest` tag, which the deploy
+  # pipeline force-redeploys against. Revisit alongside switching CI to
+  # immutable per-commit-SHA tags.
+  - CKV_AWS_51
+
+  # SG rule allowing 0.0.0.0/0 on port 80: the ALB's HTTP listener only
+  # exists to 301-redirect to HTTPS (intentional public entrypoint, not a
+  # data path). Also flags the ECS ingress rule as a false positive — that
+  # rule is scoped via referenced_security_group_id (the ALB SG), never a
+  # public cidr.
+  - CKV_AWS_260
+
+compact: true
+quiet: true

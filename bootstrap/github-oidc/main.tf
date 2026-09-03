@@ -21,6 +21,7 @@ provider "aws" {
 locals {
   github_owner_id = "justthatpixel@64263647"
   github_repo     = "${local.github_owner_id}/aws-ecs-project@1356034345"
+  app_github_repo = "${local.github_owner_id}/ecs-project@1325329604"
 }
 
 # Reusing the OIDC provider that already exists in this account — AWS only
@@ -238,13 +239,11 @@ output "apply_role_arn" {
 }
 
 # ---------------------------------------------------------------------------
-# ECR-push role — for the docker build/scan/push pipeline (docker-build-
-# scan.yml / docker-push.yml). Those workflows live in this repo but check
-# out and build ecs-project's source cross-repo, so this role is trusted
-# the same way as plan/apply above, not scoped to a different repo.
-# Deliberately separate from the infra roles: this one only ever pushes
-# images, nothing else — no VPC/ALB/IAM/ECS access. Deploying the pushed
-# image is a separate, deliberate action, not something this does.
+# ECR-push role — for the app repo's build/scan/push pipeline. Deliberately
+# separate from the infra roles above: this one only ever pushes images,
+# nothing else — no VPC/ALB/IAM/ECS access, and it's trusted for a
+# different repo entirely. Deploying the pushed image is a separate,
+# deliberate action, not something this pipeline does automatically.
 # ---------------------------------------------------------------------------
 
 data "aws_iam_policy_document" "ecr_push_assume_role" {
@@ -263,15 +262,9 @@ data "aws_iam_policy_document" "ecr_push_assume_role" {
     }
 
     condition {
-      # docker-push.yml lives in aws-ecs-project now (checks out
-      # ecs-project's code cross-repo), so the OIDC token reflects the
-      # repo hosting the workflow file, not the one whose source it
-      # builds. Same repo/wildcard pattern as the plan role, since this
-      # role is assumed from workflow_run and workflow_dispatch triggers
-      # whose exact sub claim shape isn't worth hard-coding.
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${local.github_repo}:*"]
+      values   = ["repo:${local.app_github_repo}:ref:refs/heads/main"]
     }
   }
 }

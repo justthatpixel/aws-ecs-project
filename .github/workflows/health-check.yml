@@ -1,35 +1,35 @@
-name: Health Check
+# name: Health Check
 
-on:
-  push:
-    branches: [main]
-    paths:
-      - "terraform/**"
-  schedule:
-    # Every 30 minutes — cheap ongoing liveness check of the deployed app.
-    - cron: "*/30 * * * *"
-  workflow_dispatch: {}
+# on:
+#   push:
+#     branches: [main]
+#     paths:
+#       - "terraform/**"
+#   schedule:
+#     # Every 30 minutes — cheap ongoing liveness check of the deployed app.
+#     - cron: "*/30 * * * *"
+#   workflow_dispatch: {}
 
-env:
-  HEALTH_CHECK_URL: https://threat-composer.honeycreators.com/
+# env:
+#   HEALTH_CHECK_URL: https://threat-composer.honeycreators.com/
 
-jobs:
-  health-check:
-    name: Check deployed URL
-    runs-on: ubuntu-latest
-    steps:
-      - name: Poll health endpoint with retries
-        run: |
-          # A push to main only means an apply *started*, not that ECS has
-          # finished rolling out yet — retry generously to absorb that.
-          for attempt in $(seq 1 10); do
-            status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_CHECK_URL" || echo "000")
-            echo "Attempt $attempt: HTTP $status"
-            if [ "$status" -ge 200 ] && [ "$status" -lt 400 ]; then
-              echo "Healthy."
-              exit 0
-            fi
-            sleep 30
-          done
-          echo "::error::$HEALTH_CHECK_URL did not return a healthy status after 10 attempts"
-          exit 1
+# jobs:
+#   health-check:
+#     name: Check deployed URL
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Poll health endpoint with retries
+#         run: |
+#           # A push to main only means an apply *started*, not that ECS has
+#           # finished rolling out yet — retry generously to absorb that.
+#           for attempt in $(seq 1 10); do
+#             status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$HEALTH_CHECK_URL" || echo "000")
+#             echo "Attempt $attempt: HTTP $status"
+#             if [ "$status" -ge 200 ] && [ "$status" -lt 400 ]; then
+#               echo "Healthy."
+#               exit 0
+#             fi
+#             sleep 30
+#           done
+#           echo "::error::$HEALTH_CHECK_URL did not return a healthy status after 10 attempts"
+#           exit 1

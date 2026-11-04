@@ -73,6 +73,32 @@ Threat Composer helps you map the ways an attacker could exploit a system, model
 
 Plan, apply and destroy share one concurrency group so they can never race for the state lock.
 
+## 📊 Monitoring
+
+- **Container Insights**: CPU, memory, network and task counts for the `ecs-project` cluster
+- **CloudWatch Logs**: Container logs shipped by the `awslogs` driver, with explicit retention
+- **ALB Metrics**: Request count, response time, 5xx and healthy hosts under `AWS/ApplicationELB`
+
+<img width="973" height="468" alt="CloudWatch Container Insights" src="https://github.com/user-attachments/assets/f5d4ab9a-dbc1-4d41-b815-54754c614ebf" />
+
+## ✅ Successful Pipeline Runs
+
+**Docker Image Publish**
+
+<img width="960" height="157" alt="Docker image publish run" src="https://github.com/user-attachments/assets/6a45d7e4-3609-452b-ab4c-07ffbd386d36" />
+
+**Terraform Plan + Apply**
+
+<img width="978" height="202" alt="Terraform plan and apply run" src="https://github.com/user-attachments/assets/4fe00f70-b5d5-4dd2-a9a1-ac65421ed17a" />
+
+**Terraform Plan + Destroy**
+
+<img width="993" height="186" alt="Terraform plan and destroy run" src="https://github.com/user-attachments/assets/7d3058a1-dd38-4e4e-83a0-63b285d6cadc" />
+
+**Domain URL Health Check**
+
+<img width="974" height="202" alt="Health check run" src="https://github.com/user-attachments/assets/8ac012f6-ca02-475f-b7f0-692f667f4e52" />
+
 ## 💻 Local Set-up
 
 ### Prerequisites

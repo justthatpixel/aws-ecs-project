@@ -148,9 +148,7 @@ You also need an issued ACM certificate for the domain and an `AWS_ACCOUNT_ID` r
 
 ## 🔭 Possible Improvements
 
+- Prometheus + Grafana, ELK and X-Ray for observability
 - AWS WAF in front of the ALB
 - ECS auto-scaling policies
-- Network ACLs as an extra layer
-- Prometheus + Grafana, ELK and X-Ray for observability
-- Automatic ECS rollout after an image push
-- Required reviewers on the `production` environment
+

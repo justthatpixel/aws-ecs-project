@@ -68,15 +68,67 @@ Threat Composer helps you map the ways an attacker could exploit a system, model
 
 Plan, apply and destroy share one concurrency group so they can never race for the state lock.
 
-## 💻 Run Locally
+## 💻 Local Set-up
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) to build and run the container
+- [Node.js](https://nodejs.org/) 24 and [Yarn](https://yarnpkg.com/) (only for the dev server)
+- [Terraform](https://developer.hashicorp.com/terraform/install) 1.6+, [TFLint](https://github.com/terraform-linters/tflint), [Checkov](https://www.checkov.io/) and [pre-commit](https://pre-commit.com/) (only for the infrastructure checks)
+- The AWS CLI with credentials (only for a real `terraform plan`)
+
+### Run the app in Docker (matches what ships to ECS)
 
 ```bash
-cd app
+git clone https://github.com/justthatpixel/aws-ecs-project.git
+cd aws-ecs-project/app
+
 docker build -t threat-composer:local .
 docker run --rm --name threat-composer -p 8080:8080 threat-composer:local
 ```
 
-Then open <http://localhost:8080/>.
+Open <http://localhost:8080/>. Stop it with `docker stop threat-composer`.
+
+### Run the app with the dev server (hot reload)
+
+```bash
+cd app
+yarn install --frozen-lockfile
+yarn start
+```
+
+Open <http://localhost:3000/>.
+
+### Check the Terraform locally (no AWS account needed)
+
+```bash
+cd terraform
+terraform fmt -recursive -check
+terraform init -backend=false
+terraform validate
+tflint --init && tflint --config=.tflint.hcl --call-module-type=all
+checkov -d . --config-file .checkov.yaml
+```
+
+### Plan against the real infrastructure
+
+This reads the shared S3 state, so it needs AWS credentials with access to the state bucket. Normally the pipeline does this for you.
+
+```bash
+cd terraform
+terraform init
+terraform plan
+```
+
+### Enable the pre-commit hooks
+
+Run once per clone, from the repo root:
+
+```bash
+pre-commit install
+```
+
+Then fmt, validate, TFLint and Checkov run on every commit. You can also run them on demand with `pre-commit run --all-files`.
 
 ## 🧰 Bootstrapping
 

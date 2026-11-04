@@ -49,6 +49,11 @@ Threat Composer helps you map the ways an attacker could exploit a system, model
 - **Remote State Management**: Encrypted S3 backend with state locking
 - **Security Scanning**: Trivy, Checkov and TFLint on every change
 - **Pre-commit Hooks**: fmt, validate, TFLint and Checkov before each commit
+- **Docker Best Practices**:
+  - **Multi-stage Build**: Node builds the app, only the static output ships in the final image
+  - **Minimal Base Image**: Alpine-based `nginx-unprivileged` to reduce the attack surface
+  - **Non-root User**: Container runs as the `nginx` user, never root
+  - **Trivy Image Scan**: Every image is scanned for CRITICAL/HIGH vulnerabilities before it is pushed to ECR
 
 ## 🔒 Security Features
 
